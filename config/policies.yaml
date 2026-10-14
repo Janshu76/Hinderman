@@ -1,0 +1,19 @@
+version: 1
+rules:
+  - category: auth_failure
+    min_severity: high
+    action: block
+    priority: 100
+  - category: prompt_injection
+    min_severity: high
+    action: block
+    priority: 90
+  - category: payment_card
+    min_severity: low
+    action: redact
+    replacement: "[PAYMENT DATA REDACTED]"
+    priority: 50
+  - category: email
+    min_severity: low
+    action: mask
+    priority: 10

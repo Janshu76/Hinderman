@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "warden-gateway"
+version = "0.1.0"
+description = "A policy-driven AI traffic gateway"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115,<1",
+    "litellm>=1.55,<2",
+    "pydantic>=2.9,<3",
+    "PyYAML>=6.0,<7",
+    "uvicorn[standard]>=0.32,<1",
+]
+
+[project.optional-dependencies]
+dev = ["httpx>=0.27,<1", "pytest>=8,<9", "pytest-asyncio>=0.24,<2"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["contracts*", "eval*", "injection*", "redteam*", "warden*"]
+
+[tool.setuptools.package-data]
+injection = ["data/*.yaml"]

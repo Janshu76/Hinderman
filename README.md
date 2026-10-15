@@ -6,11 +6,12 @@ frontend. It includes rule-based detection, an optional Hugging Face
 classifier, canary-token leak detection, evaluation tools, and red-team
 clients.
 
-> **Integration scope:** This folder does not contain the gateway's HTTP
-> server implementation or frontend application. The HTTP routes below are
-> the gateway contract referenced by the evaluation and red-team clients.
-> Implement those routes in the backend; the detector itself is called
-> internally by the backend and does not expose separate HTTP endpoints.
+> **Integration scope:** The repository includes the WARDEN FastAPI service
+> under `warden/`. The `/api/auth/login` and `/v1/chat` routes below remain
+> the existing application gateway contract referenced by frontend,
+> evaluation, and red-team clients; WARDEN uses a separate chat path so it
+> does not override that contract. The injection detector is also available
+> as an in-process component.
 
 ## Project layout
 
@@ -18,6 +19,9 @@ clients.
   component integration.
 - `injection/` — prompt normalisation, rule scanning, optional model scoring,
   result combination, and canary leak detection.
+- `warden/` — policy-driven FastAPI gateway, with the injection scorer wired
+  into its default detector set.
+- `config/` — WARDEN policy rules.
 - `eval/` — evaluation data, gateway client, metrics, and CLI runners.
 - `redteam/` — gateway scenarios and demo clients.
 - `tests/` — unit and integration-contract tests.
@@ -64,10 +68,11 @@ Use dedicated test accounts and keep credentials in environment variables;
 never commit real credentials. The gateway URL defaults to
 `http://localhost:8000`.
 
-## Gateway HTTP endpoints
+## Existing application gateway HTTP contract
 
-The frontend and evaluation/red-team clients communicate with the **gateway
-backend** over HTTP. The gateway backend should implement these routes.
+The frontend and evaluation/red-team clients use this existing gateway
+contract. A backend implementing the full application should provide these
+routes; the WARDEN service routes are listed separately below.
 
 | Method | Path | Purpose | Authentication |
 |---|---|---|---|
@@ -158,9 +163,8 @@ The evaluation client also sends `X-Eval-Run: true` so backend integrations
 can identify evaluation traffic and keep it separate from production
 analytics. Normal frontend requests do not need this header.
 
-The evaluation and red-team Python clients also require `httpx`. It is not
-currently listed in `requirements.txt`; install it for those tools with
-`python -m pip install httpx`.
+The evaluation and red-team Python clients also require `httpx`, which is
+included in `requirements.txt`.
 
 > **Client auth wiring:** These routes describe the intended bearer-token
 > integration. Before using the current evaluation/red-team helper clients
@@ -179,11 +183,35 @@ currently listed in `requirements.txt`; install it for those tools with
 6. Configure the backend's CORS allow-list for the deployed frontend origin;
    do not allow arbitrary origins in production.
 
+## WARDEN service endpoints
+
+Run the integrated WARDEN FastAPI application with
+`python -m uvicorn warden.main:app --reload`. Its chat endpoint is namespaced
+so the existing `/v1/chat` application contract remains available to a host
+backend.
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET` | `/health` | Liveness check. |
+| `POST` | `/gateway/v1/chat` | Run WARDEN policy checks and return the model reply with a gateway report. |
+| `GET` | `/api/policies` | Read the active WARDEN policy document. |
+| `PUT` | `/api/policies` | Replace the active policy document; requires `WARDEN_ADMIN_API_KEY`. |
+
+The WARDEN chat request uses `user_id` and a `messages` array, and returns
+`reply` and `gateway_report`. Its default prompt-injection detector calls the
+repository's `injection.score` implementation for every submitted message,
+including client-supplied assistant history. Set `INJECTION_MODE=rules` for
+offline rule-only detection; `combined` may load the optional classifier.
+The built-in authentication detector is demo-only and accepts the `demo`
+user. This service does not implement the host application's bearer-token
+login contract; do not expose its demo chat route as a production
+authentication boundary.
+
 ## Backend-to-detection integration
 
-Detection is an **in-process Python interface**, not an HTTP route. The
-backend should call it before forwarding user prompts to the model and on
-retrieved document chunks when RAG is enabled.
+The scorer itself is an **in-process Python interface**, not an HTTP route.
+The host backend should call it before forwarding user prompts to the model
+and on retrieved document chunks when RAG is enabled.
 
 ### Prompt injection scorer
 

@@ -1,0 +1,117 @@
+# Layer 1 rules. Fields: id, type, weight (0-1), regex, description,
+# optional not_regex (skip a match if the matched text also fits this), optional sources.
+# Rules run on NORMALISED text (casefolded, whitespace collapsed, invisible characters removed).
+# Keep gaps bounded ({0,3}, {0,80}) so a 100 KB prompt cannot make a regex slow.
+
+rules:
+  # ---------- instruction override ----------
+  - id: R-IGNORE-PREV
+    type: INSTRUCTION_OVERRIDE
+    weight: 0.85
+    description: asks to ignore or override earlier instructions or rules
+    regex: '\b(ignore|disregard|forget|override|bypass)\b\W+(?:\w+\W+){0,3}?(previous|prior|above|earlier|all|any|every|your|the system|safety|security)\W+(?:\w+\W+){0,3}?(instructions?|rules?|guidelines?|prompts?|directions?|polic(?:y|ies)|restrictions?|programming)\b'
+    not_regex: '\b(my|our)\b'
+
+  - id: R-FORGET-TOLD
+    type: INSTRUCTION_OVERRIDE
+    weight: 0.7
+    description: tells the model to forget what it was told
+    regex: '\b(forget|ignore|disregard)\b\W+(?:\w+\W+){0,2}?(everything|anything)\W+(?:\w+\W+){0,3}?(told|instructed|given|said|learned)\b'
+
+  - id: R-ROLEPLAY-NORULES
+    type: INSTRUCTION_OVERRIDE
+    weight: 0.8
+    description: role-play as an AI without restrictions (jailbreak)
+    regex: '\b(you are now|you will act as|act as|pretend (?:to be|you are)|roleplay as|behave as)\b.{0,80}?\b(dan|do anything now|jailbroken|unrestricted|unfiltered|uncensored|no (?:restrictions|limits|rules|filters)|without (?:any )?(?:restrictions|rules|filters|limits))\b'
+
+  - id: R-BYPASS-SAFETY
+    type: INSTRUCTION_OVERRIDE
+    weight: 0.45
+    description: asks to bypass or disable safety filters (weak signal on its own)
+    regex: '\b(bypass|disable|turn off|remove|ignore|circumvent)\b\W+(?:\w+\W+){0,2}?(safety|guardrails?|content filters?|filters?|safeguards?|content polic(?:y|ies))\b'
+
+  - id: R-MODE-SWITCH
+    type: INSTRUCTION_OVERRIDE
+    weight: 0.35
+    description: mentions a privileged mode (weak signal on its own)
+    regex: '\b(developer|debug|god|sudo|maintenance|admin(?:istrator)?)\s+mode\b'
+
+  - id: R-NEW-INSTRUCTIONS
+    type: INSTRUCTION_OVERRIDE
+    weight: 0.4
+    description: from now on style rule change (weak signal on its own)
+    regex: '\b(from now on|henceforth|starting now)\b.{0,40}?\b(you (?:are|will|must|shall)|respond only|answer only)\b'
+
+  - id: R-FAKE-ROLE-TAG
+    type: INSTRUCTION_OVERRIDE
+    weight: 0.6
+    description: fake system or assistant message markers inside the text
+    regex: '(?:^|[.!?]\s+)(?:system|assistant)\s*:|<\|?(?:im_start|im_end|system|endoftext)\|?>|\[/?inst\]'
+
+  # ---------- system prompt extraction ----------
+  - id: R-REVEAL-SYSPROMPT
+    type: SYSTEM_PROMPT_EXTRACTION
+    weight: 0.9
+    description: asks to reveal the system or hidden prompt
+    regex: '\b(reveal|show|print|display|repeat|output|tell me|give me|leak|dump|share|recite|write out)\b\W+(?:\w+\W+){0,3}?(?:(?:your|the|its|this|that)\W+(?:\w+\W+){0,1}?system|hidden|secret)\W+(?:\w+\W+){0,2}?(prompt|instructions?|message|rules|configuration|context)\b'
+
+  - id: R-REVEAL-YOUR-INSTR
+    type: SYSTEM_PROMPT_EXTRACTION
+    weight: 0.8
+    description: asks for the model's own initial or hidden instructions
+    regex: '\b(reveal|show|print|display|repeat|output|tell me|give me|share|recite|what (?:are|were|is))\b\W+(?:\w+\W+){0,3}?your\W+(?:\w+\W+){0,2}?(initial|original|first|internal|hidden|secret|system|exact|full)\W+(?:\w+\W+){0,1}?(instructions?|prompt|message|rules|guidelines|configuration)\b'
+
+  - id: R-REPEAT-ABOVE
+    type: SYSTEM_PROMPT_EXTRACTION
+    weight: 0.45
+    description: repeat everything above style extraction (weak signal on its own)
+    regex: '\b(repeat|print|output|copy|say|write)\b.{0,30}?\b(everything|all (?:of )?the text|all text|the words|the text)\b.{0,20}?\b(above|before this|so far|at the (?:top|start|beginning))\b'
+
+  # ---------- data exfiltration ----------
+  - id: R-PREV-USER-DATA
+    type: DATA_EXFILTRATION
+    weight: 0.85
+    description: asks for another or previous user's conversation or data
+    regex: '\b(previous|other|another|earlier)\W+(?:\w+\W+){0,1}?(users?|person|people|sessions?)\b\W+(?:\w+\W+){0,3}?(chats?|conversations?|messages?|prompts?|history|queries|questions|data|passwords?|records?)\b'
+
+  - id: R-DUMP-ALL-SECRETS
+    type: DATA_EXFILTRATION
+    weight: 0.4
+    description: asks to dump all users, passwords or keys (weak signal on its own)
+    regex: '\b(dump|export|list|show|send|give)\b\W+(?:\w+\W+){0,3}?(all|every)\W+(?:\w+\W+){0,2}?(users?|passwords?|credentials?|api keys?|secrets?|tokens?)\b'
+
+  # ---------- indirect injection: only checked inside DOCUMENTS ----------
+  - id: R-DOC-ADDRESSES-AI
+    type: INDIRECT_INJECTION
+    weight: 0.7
+    sources: [document]
+    description: document speaks to the AI and gives it an action
+    regex: '\b(assistant|ai assistant|chatbot|language model|llm|note to ai)\b.{0,80}?\b(ignore|disregard|send|forward|email|reveal|output|print|exfiltrate|delete|execute)\b'
+
+  - id: R-DOC-CONDITIONAL
+    type: INDIRECT_INJECTION
+    weight: 0.8
+    sources: [document]
+    description: when summarised or read, do X instruction hidden in a document
+    regex: '\b(when|if|once|after|before)\b[^.]{0,60}?\b(summari[sz]\w*|reads?|reading|process\w*|analy[sz]\w*|translat\w*)\b[^.]{0,80}?\b(send|forward|email|reveal|exfiltrate|ignore|disregard|output)\b'
+
+  - id: R-DOC-EXFIL-TARGET
+    type: INDIRECT_INJECTION
+    weight: 0.6
+    sources: [document]
+    description: document tells something to be sent to an address or URL
+    regex: '\b(send|forward|email|post|upload|transmit)\b[^.]{0,80}?(https?://\S+|[\w.+-]+@[\w-]+\.[\w.-]+)'
+
+  - id: R-DOC-IMG-EXFIL
+    type: INDIRECT_INJECTION
+    weight: 0.85
+    sources: [document]
+    description: markdown image whose URL carries data in the query string
+    regex: '!\[[^\]]{0,100}\]\(https?://[^)\s]{0,200}[?&](?:data|q|d|secret|payload|content)='
+
+  - id: R-DOC-HTML-COMMENT
+    type: INDIRECT_INJECTION
+    weight: 0.6
+    sources: [document]
+    description: instruction-like words inside an HTML comment
+    regex: '<!--.{0,300}?\b(ignore|assistant|instruction|system prompt|reveal|send)\b.{0,300}?-->'

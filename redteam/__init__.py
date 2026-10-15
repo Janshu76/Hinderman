@@ -1,0 +1,1 @@
+"""Red-team scenarios for the demo (M3)."""

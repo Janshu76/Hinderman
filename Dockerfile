@@ -5,6 +5,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 COPY pyproject.toml ./
 COPY warden ./warden
+COPY contracts ./contracts
+COPY injection ./injection
 RUN pip install --no-cache-dir .
 COPY config ./config
 EXPOSE 8000

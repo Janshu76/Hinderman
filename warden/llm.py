@@ -3,6 +3,8 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Protocol
 
+import httpx
+
 from warden.models import PromptMessage
 
 logger = logging.getLogger(__name__)
@@ -14,7 +16,7 @@ class LLMSettings:
     ollama_api_base: str
     hosted_model: str
     hosted_api_key: str | None
-    timeout_seconds: float = 60
+    timeout_seconds: float = 180
 
 
 @dataclass(frozen=True)
@@ -32,6 +34,50 @@ class LLMAdapter(Protocol):
     async def complete(
         self, messages: Sequence[PromptMessage]
     ) -> CompletionResult: ...
+
+
+class OllamaHTTPAdapter:
+    def __init__(self, settings: LLMSettings) -> None:
+        self.settings = settings
+
+    async def complete(
+        self, messages: Sequence[PromptMessage]
+    ) -> CompletionResult:
+        model = self.settings.ollama_model.removeprefix("ollama_chat/")
+        url = f"{self.settings.ollama_api_base.rstrip('/')}/api/chat"
+        try:
+            async with httpx.AsyncClient(
+                timeout=self.settings.timeout_seconds
+            ) as client:
+                response = await client.post(
+                    url,
+                    json={
+                        "model": model,
+                        "messages": [message.model_dump() for message in messages],
+                        "stream": False,
+                        "think": False,
+                        "options": {"num_predict": 256},
+                    },
+                )
+                response.raise_for_status()
+                payload = response.json()
+        except (httpx.HTTPError, ValueError) as exc:
+            logger.error("Local Ollama request failed: %r", exc)
+            raise LLMUnavailableError(
+                "The local Ollama request failed."
+            ) from exc
+
+        message = payload.get("message") if isinstance(payload, dict) else None
+        text = message.get("content") if isinstance(message, dict) else None
+        if not isinstance(text, str) or not text.strip():
+            raise LLMUnavailableError(
+                "The local Ollama response did not contain text."
+            )
+        return CompletionResult(
+            text=text,
+            model=self.settings.ollama_model,
+            fallback_used=False,
+        )
 
 
 class LiteLLMAdapter:

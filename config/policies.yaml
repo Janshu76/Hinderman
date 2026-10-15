@@ -8,6 +8,10 @@ rules:
     min_severity: high
     action: block
     priority: 90
+  - category: indirect_prompt_injection
+    min_severity: high
+    action: block
+    priority: 100
   - category: payment_card
     min_severity: low
     action: redact

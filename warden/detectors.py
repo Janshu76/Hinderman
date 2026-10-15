@@ -118,42 +118,53 @@ class InjectionScorerDetector:
         findings: list[Finding] = []
         for index, message in enumerate(messages):
             result: InjectionResult = await asyncio.to_thread(
-                self._score, message.content
+                self._score, message.content, "user"
             )
-            if result.label != "injection":
-                continue
-
-            injection_findings = result.findings or [None]
-            for injection_finding in injection_findings:
-                confidence = (
-                    injection_finding.confidence
-                    if injection_finding is not None
-                    else result.score
-                )
-                finding_type = (
-                    injection_finding.type
-                    if injection_finding is not None
-                    else "injection"
-                )
-                findings.append(
-                    Finding(
-                        category="prompt_injection",
-                        severity=(
-                            Severity.HIGH
-                            if result.score >= BLOCK_THRESHOLD
-                            else Severity.MEDIUM
-                        ),
-                        detector=self.name,
-                        message=(
-                            f"Prompt injection signal {finding_type} detected "
-                            f"with confidence {confidence:.2f}."
-                        ),
-                        message_index=index,
-                    )
-                )
+            findings.extend(self._findings(result, "user", index))
         return findings
 
+    async def detect_documents(self, chunks: Sequence[str]) -> list[Finding]:
+        findings: list[Finding] = []
+        for text in chunks:
+            result: InjectionResult = await asyncio.to_thread(
+                self._score, text, "document"
+            )
+            findings.extend(self._findings(result, "document", None))
+        return findings
+
+    def _findings(
+        self, result: InjectionResult, source: str, message_index: int | None
+    ) -> list[Finding]:
+        if result.label != "injection":
+            return []
+
+        injection_findings = result.findings or [None]
+        return [
+            Finding(
+                category=(
+                    "indirect_prompt_injection"
+                    if source == "document"
+                    else "prompt_injection"
+                ),
+                severity=(
+                    Severity.HIGH
+                    if result.score >= BLOCK_THRESHOLD
+                    else Severity.MEDIUM
+                ),
+                detector=self.name,
+                message=(
+                    f"{'Retrieved document' if source == 'document' else 'Prompt'} "
+                    f"injection signal "
+                    f"{finding.type if finding is not None else 'injection'} "
+                    f"detected with confidence "
+                    f"{finding.confidence if finding is not None else result.score:.2f}."
+                ),
+                message_index=message_index,
+            )
+            for finding in injection_findings
+        ]
+
     @staticmethod
-    def _score(text: str) -> InjectionResult:
+    def _score(text: str, source: str = "user") -> InjectionResult:
         with _INJECTION_SCORER_LOCK:
-            return score_injection(text, "user")
+            return score_injection(text, source)

@@ -40,6 +40,17 @@ class ChatRequest(BaseModel):
     messages: list[ChatMessage] = Field(min_length=1, max_length=100)
 
 
+class RetrievedChunk(BaseModel):
+    doc_id: str = Field(min_length=1)
+    text: str
+    score: float | None = None
+
+
+class RetrievedSource(BaseModel):
+    doc_id: str = Field(min_length=1)
+    score: float | None = None
+
+
 class Finding(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -91,3 +102,4 @@ class GatewayReport(BaseModel):
 class ChatResponse(BaseModel):
     reply: str
     gateway_report: GatewayReport
+    sources: list[RetrievedSource] = Field(default_factory=list)

@@ -197,15 +197,24 @@ backend.
 | `GET` | `/api/policies` | Read the active WARDEN policy document. |
 | `PUT` | `/api/policies` | Replace the active policy document; requires `WARDEN_ADMIN_API_KEY`. |
 
-The WARDEN chat request uses `user_id` and a `messages` array, and returns
-`reply` and `gateway_report`. Its default prompt-injection detector calls the
-repository's `injection.score` implementation for every submitted message,
-including client-supplied assistant history. Set `INJECTION_MODE=rules` for
+The WARDEN chat request uses a `messages` array, and returns `reply`,
+`gateway_report`, and source document IDs. When `M4_API_BASE_URL` is
+configured, the route requires an M4 bearer token, validates it at
+`/api/auth/me`, and calls `/api/rag/retrieve` with the same token. M4 derives
+identity and ACL permissions server-side; any client-supplied `user_id` is
+ignored. Retrieved passages are scanned with M3's document-source rules
+before being used as untrusted model context. Set `INJECTION_MODE=rules` for
 offline rule-only detection; `combined` may load the optional classifier.
-The built-in authentication detector is demo-only and accepts the `demo`
-user. This service does not implement the host application's bearer-token
-login contract; do not expose its demo chat route as a production
-authentication boundary.
+The local Compose configuration calls the Ollama API on the host, using
+`qwen3.5:4b` by default; set `WARDEN_OLLAMA_MODEL` and
+`WARDEN_OLLAMA_API_BASE` to use another locally served Ollama model. This
+avoids downloading a separate Ollama container and model. Local chat uses
+Ollama's HTTP API directly. LiteLLM remains optional for deployments that
+need its hosted-provider adapter (`pip install '.[hosted]'`).
+For the local Docker setup, `M4_API_BASE_URL` should point to
+`http://host.docker.internal:8000`. If it is unset, WARDEN falls back to its
+demo-only `demo` allowlist and does not perform RAG; do not expose that mode as
+a production authentication boundary.
 
 ## Backend-to-detection integration
 

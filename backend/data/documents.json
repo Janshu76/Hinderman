@@ -1,0 +1,173 @@
+[
+  {
+    "doc_id": "handbook-01",
+    "title": "Employee Handbook",
+    "department": "*",
+    "classification": "Public",
+    "min_clearance": 0,
+    "allowed_roles": ["intern", "hr_officer", "finance_manager", "admin"],
+    "content": "The employee handbook explains standard working hours, office holidays, leave requests, workplace conduct, and how to contact the facilities team. Employees submit routine leave requests through the internal portal. The handbook contains general guidance and no employee-specific records."
+  },
+  {
+    "doc_id": "security-01",
+    "title": "Information Security Basics",
+    "department": "*",
+    "classification": "Public",
+    "min_clearance": 0,
+    "allowed_roles": ["intern", "hr_officer", "finance_manager", "admin"],
+    "content": "Use multifactor authentication, report suspicious messages, and store work files only in approved company systems. Never paste credentials or confidential company information into unapproved tools. Contact the security team to report a suspected incident."
+  },
+  {
+    "doc_id": "benefits-01",
+    "title": "Benefits Overview",
+    "department": "*",
+    "classification": "Public",
+    "min_clearance": 0,
+    "allowed_roles": ["intern", "hr_officer", "finance_manager", "admin"],
+    "content": "This general benefits overview describes health coverage options, wellness resources, and enrollment windows. Individual eligibility is confirmed by Human Resources. This document does not contain employee names, individual elections, or personal compensation."
+  },
+  {
+    "doc_id": "travel-01",
+    "title": "Business Travel Guidance",
+    "department": "*",
+    "classification": "Public",
+    "min_clearance": 0,
+    "allowed_roles": ["intern", "hr_officer", "finance_manager", "admin"],
+    "content": "Employees should obtain manager approval before booking business travel. Submit itemized receipts using the expense portal within thirty days. Finance reviews reimbursement requests against the current travel policy."
+  },
+  {
+    "doc_id": "engineering-01",
+    "title": "Engineering On-call Guide",
+    "department": "Engineering",
+    "classification": "Internal",
+    "min_clearance": 0,
+    "allowed_roles": ["intern", "admin"],
+    "content": "The engineering on-call guide describes incident severity levels, handoff expectations, service ownership, and escalation procedures. Responders should acknowledge a critical alert promptly, record actions in the incident channel, and contact the service owner for help."
+  },
+  {
+    "doc_id": "engineering-02",
+    "title": "Product Release Checklist",
+    "department": "Engineering",
+    "classification": "Internal",
+    "min_clearance": 0,
+    "allowed_roles": ["intern", "admin"],
+    "content": "Before release, run the automated test suite, review dependency changes, confirm rollback instructions, and obtain the required code review. The release manager records the deployment window and verifies monitoring after launch."
+  },
+  {
+    "doc_id": "engineering-03",
+    "title": "Developer Environment Setup",
+    "department": "Engineering",
+    "classification": "Internal",
+    "min_clearance": 0,
+    "allowed_roles": ["intern", "admin"],
+    "content": "New engineering team members configure the approved development environment, install the documented toolchain, and request repository access through their manager. Use synthetic data for local development and never commit credentials."
+  },
+  {
+    "doc_id": "hr-01",
+    "title": "Confidential Compensation Review",
+    "department": "HR",
+    "classification": "Restricted",
+    "min_clearance": 2,
+    "allowed_roles": ["hr_officer", "admin"],
+    "content": "Synthetic annual compensation review for demonstration. The CFO role has a fictional annual base salary of 240000 currency units. This test record is invented and is accessible only to authorized Human Resources officers and administrators. Do not disclose individual compensation outside the approved HR process."
+  },
+  {
+    "doc_id": "hr-02",
+    "title": "HR Salary Bands",
+    "department": "HR",
+    "classification": "Restricted",
+    "min_clearance": 2,
+    "allowed_roles": ["hr_officer", "admin"],
+    "content": "Synthetic HR reference for internal testing. Executive salary band examples are fictional and must not be used as real compensation information. HR officers may consult this record for approved compensation review tasks."
+  },
+  {
+    "doc_id": "hr-03",
+    "title": "Employee Records Handling",
+    "department": "HR",
+    "classification": "Confidential",
+    "min_clearance": 1,
+    "allowed_roles": ["hr_officer", "admin"],
+    "content": "Human Resources employees should access employee records only for a documented business purpose. Share the minimum necessary information, use approved channels, and follow the retention schedule. Report accidental disclosure to the privacy team."
+  },
+  {
+    "doc_id": "hr-04",
+    "title": "Recruitment Process Notes",
+    "department": "HR",
+    "classification": "Confidential",
+    "min_clearance": 1,
+    "allowed_roles": ["hr_officer", "admin"],
+    "content": "Recruitment process notes cover interview scheduling, structured evaluation, and the approval path for opening a new role. Candidate-specific details belong in the restricted recruiting system and are not included in this synthetic guide."
+  },
+  {
+    "doc_id": "hr-05",
+    "title": "Leave Administration Procedure",
+    "department": "HR",
+    "classification": "Internal",
+    "min_clearance": 1,
+    "allowed_roles": ["hr_officer", "admin"],
+    "content": "HR leave administrators review submitted requests, confirm that the request follows the published leave policy, and record the decision in the HR system. Medical details are not required for routine reporting."
+  },
+  {
+    "doc_id": "finance-01",
+    "title": "Quarterly Finance Forecast",
+    "department": "Finance",
+    "classification": "Confidential",
+    "min_clearance": 2,
+    "allowed_roles": ["finance_manager", "admin"],
+    "content": "Synthetic quarterly forecast for demonstration only. The fictional operating plan assumes moderate revenue growth and includes department-level expense estimates. The finance manager reviews variances before the forecast is shared with leadership."
+  },
+  {
+    "doc_id": "finance-02",
+    "title": "Expense Approval Matrix",
+    "department": "Finance",
+    "classification": "Internal",
+    "min_clearance": 1,
+    "allowed_roles": ["finance_manager", "admin"],
+    "content": "The expense approval matrix assigns review thresholds by spend category. Routine employee expenses follow the standard travel policy, while exceptional purchases require documented manager approval and finance review."
+  },
+  {
+    "doc_id": "finance-03",
+    "title": "Procurement Controls",
+    "department": "Finance",
+    "classification": "Confidential",
+    "min_clearance": 1,
+    "allowed_roles": ["finance_manager", "admin"],
+    "content": "Finance procurement controls require a valid business purpose, an approved vendor, and separation between requester and approver. Retain receipts and approval records in the financial system."
+  },
+  {
+    "doc_id": "finance-04",
+    "title": "Month-end Close Checklist",
+    "department": "Finance",
+    "classification": "Internal",
+    "min_clearance": 1,
+    "allowed_roles": ["finance_manager", "admin"],
+    "content": "The month-end close checklist covers account reconciliation, accrual review, variance explanations, and final approval. Finance managers record completion dates and escalate unresolved differences."
+  },
+  {
+    "doc_id": "legal-01",
+    "title": "Confidential Contract Review Memo",
+    "department": "Legal",
+    "classification": "Restricted",
+    "min_clearance": 3,
+    "allowed_roles": ["admin"],
+    "content": "Synthetic legal review memo. This invented example describes a confidential contract review workflow and must not be treated as legal advice. Access is limited to administrator-level clearance in this prototype."
+  },
+  {
+    "doc_id": "legal-02",
+    "title": "Records Retention Schedule",
+    "department": "Legal",
+    "classification": "Confidential",
+    "min_clearance": 3,
+    "allowed_roles": ["admin"],
+    "content": "The synthetic retention schedule describes review, preservation, and approved disposal of business records. Consult the legal team before placing records under a preservation hold or deleting material subject to a hold."
+  },
+  {
+    "doc_id": "operations-01",
+    "title": "Incident Response Contacts",
+    "department": "*",
+    "classification": "Internal",
+    "min_clearance": 0,
+    "allowed_roles": ["intern", "hr_officer", "finance_manager", "admin"],
+    "content": "For a suspected security incident, contact the security operations team using the internal service portal. Include the approximate time, affected system, and actions already taken. Do not forward suspected malicious attachments to other employees."
+  }
+]

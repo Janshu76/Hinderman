@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react"
 import tailwindcss from "@tailwindcss/vite"
 
 const backend = process.env.BACKEND_URL || "http://localhost:8000"
+const warden = process.env.WARDEN_URL || "http://localhost:8001"
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
@@ -27,6 +28,7 @@ export default defineConfig({
     proxy: {
       "/api": backend,
       "/health": backend,
+      "/gateway": warden,
     },
   },
 })

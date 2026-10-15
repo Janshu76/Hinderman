@@ -31,7 +31,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts"
-import { api, login, logout } from "./api.js"
+import { api, chatWithWarden, login, logout } from "./api.js"
 
 const navItems = [
   { id: "chat", label: "Secure chat", icon: MessageSquareText },
@@ -223,11 +223,11 @@ function AppShell({ user, active, setActive, onLogout, children }) {
         </div>
         <div className="mx-4 mt-auto mb-4 rounded-xl border border-white/[.08] bg-white/[.035] p-3.5">
           <div className="flex items-center gap-2 text-xs font-medium text-slate-200">
-            <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,.6)]" />
-            Gateway connected
+            <span className="h-2 w-2 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,.6)]" />
+            WARDEN demo chat
           </div>
           <p className="mt-2 text-[11px] leading-5 text-slate-500">
-            RAG access controls active for this session.
+            Chat uses WARDEN's demo identity; M4 access controls remain separate.
           </p>
         </div>
         <button
@@ -295,17 +295,8 @@ function PageHeading({ eyebrow, title, description, action }) {
 function ChatPage() {
   const [query, setQuery] = useState("")
   const [result, setResult] = useState(null)
-  const [documents, setDocuments] = useState({})
   const [error, setError] = useState("")
   const [busy, setBusy] = useState(false)
-
-  useEffect(() => {
-    api("/api/documents")
-      .then(({ documents: rows }) => {
-        setDocuments(Object.fromEntries(rows.map((document) => [document.doc_id, document])))
-      })
-      .catch((cause) => setError(cause.message))
-  }, [])
 
   async function ask(question = query) {
     if (!question.trim()) return
@@ -314,10 +305,7 @@ function ChatPage() {
     setQuery(question)
     setResult(null)
     try {
-      setResult(await api("/api/rag/retrieve", {
-        method: "POST",
-        body: JSON.stringify({ query: question.trim(), k: 4 }),
-      }))
+      setResult(await chatWithWarden(question.trim()))
     } catch (cause) {
       setError(cause.message)
     } finally {
@@ -328,13 +316,13 @@ function ChatPage() {
   return (
     <div className="mx-auto max-w-4xl">
       <PageHeading
-        eyebrow="Access-controlled RAG"
-        title="Ask your knowledge base"
-        description="Only passages your identity is allowed to see can be retrieved. Try the same question with different demo roles."
+        eyebrow="WARDEN gateway"
+        title="Chat with WARDEN"
+        description="Your prompt is checked by WARDEN before its configured model responds. This demo chat is not connected to M4 document retrieval."
         action={
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600">
-            <LockKeyhole size={13} className="text-emerald-600" />
-            ACL enforced
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-800">
+            <ShieldAlert size={13} />
+            Demo identity
           </span>
         }
       />
@@ -344,12 +332,12 @@ function ChatPage() {
             <Sparkles size={18} />
           </div>
           <div>
-            <p className="text-sm font-semibold text-ink">Secure knowledge assistant</p>
-            <p className="mt-0.5 text-xs text-muted">Retrieval is scoped to your access level</p>
+            <p className="text-sm font-semibold text-ink">WARDEN secure chat</p>
+            <p className="mt-0.5 text-xs text-muted">Prompt inspection and response generation</p>
           </div>
-          <div className="ml-auto hidden items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-medium text-emerald-700 sm:flex">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-            Ready
+          <div className="ml-auto hidden items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-medium text-amber-800 sm:flex">
+            <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+            Demo mode
           </div>
         </div>
         <div className="min-h-[330px] bg-gradient-to-b from-slate-50/70 to-white p-5 sm:p-8">
@@ -360,7 +348,7 @@ function ChatPage() {
               </div>
               <h2 className="mt-5 text-lg font-semibold text-ink">What would you like to know?</h2>
               <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-muted">
-                Ask about company guidance. The gateway checks document permissions before any passages are returned.
+                Try a prompt. WARDEN will inspect it and return a gateway report with its response.
               </p>
               <div className="mt-6 flex flex-wrap justify-center gap-2">
                 {starterPrompts.map((prompt) => (
@@ -379,7 +367,7 @@ function ChatPage() {
           {busy && (
             <div className="flex h-64 items-center justify-center gap-3 text-sm text-muted">
               <span className="h-5 w-5 animate-spin rounded-full border-2 border-indigo-200 border-t-brand" />
-              Checking access and searching approved documents…
+              Sending prompt through WARDEN…
             </div>
           )}
           {result && (
@@ -392,47 +380,32 @@ function ChatPage() {
                   <Sparkles size={16} />
                 </div>
                 <div className="min-w-0 flex-1">
-                  {result.chunks.length ? (
-                    <>
-                      <p className="mb-3 text-sm font-medium text-ink">
-                        {result.chunks.length} authorized passage{result.chunks.length === 1 ? "" : "s"} found
-                      </p>
-                      <div className="space-y-3">
-                        {result.chunks.map((chunk, index) => (
-                          <article key={`${chunk.doc_id}-${index}`} className="rounded-xl border border-slate-200 bg-white p-4">
-                            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                              <div className="flex items-center gap-2">
-                                <FileText size={15} className="text-indigo-500" />
-                                <span className="text-xs font-semibold text-ink">
-                                  {documents[chunk.doc_id]?.title || chunk.doc_id}
-                                </span>
-                              </div>
-                              <span className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-medium text-emerald-700">
-                                Authorized
-                              </span>
-                            </div>
-                            <p className="text-xs leading-6 text-slate-600">{chunk.text}</p>
-                          </article>
+                  <p className="mb-2 text-sm font-medium text-ink">WARDEN response</p>
+                  <div className="whitespace-pre-wrap rounded-xl border border-slate-200 bg-white p-4 text-sm leading-6 text-slate-700">
+                    {result.reply}
+                  </div>
+                  <section className="mt-3 rounded-xl border border-slate-200 bg-white p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <h3 className="text-xs font-semibold text-ink">Gateway report</h3>
+                      <span className="rounded-full bg-indigo-50 px-2.5 py-1 text-[10px] font-semibold uppercase text-indigo-700">
+                        {result.gateway_report.action}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-xs leading-5 text-slate-600">{result.gateway_report.reason}</p>
+                    {result.gateway_report.findings.length > 0 && (
+                      <ul className="mt-3 space-y-2 border-t border-slate-100 pt-3">
+                        {result.gateway_report.findings.map((finding, index) => (
+                          <li key={`${finding.detector}-${index}`} className="text-xs leading-5 text-slate-600">
+                            <span className="font-medium text-ink">{finding.severity} · {finding.detector}:</span>{" "}
+                            {finding.message}
+                          </li>
                         ))}
-                      </div>
-                      <p className="mt-3 text-[11px] leading-5 text-slate-400">
-                        MVP retrieval preview: passages are returned from permitted documents; LLM answer generation is integrated through the gateway in a later stage.
-                      </p>
-                    </>
-                  ) : (
-                    <div className="rounded-xl border border-slate-200 bg-white p-4">
-                      <p className="text-sm font-medium text-ink">No authorized passages found</p>
-                      <p className="mt-1 text-xs leading-5 text-muted">
-                        Try a general question, or ask your department approver for access.
-                      </p>
-                    </div>
-                  )}
-                  {result.denied_count > 0 && (
-                    <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3 text-xs leading-5 text-amber-800">
-                      <LockKeyhole size={15} className="mt-0.5 shrink-0" />
-                      {result.denied_count} restricted document{result.denied_count === 1 ? "" : "s"} were excluded by access policy. The attempt was recorded without storing your question.
-                    </div>
-                  )}
+                      </ul>
+                    )}
+                    <p className="mt-3 text-[10px] text-slate-400">
+                      {result.gateway_report.detectors_run.join(" · ")}
+                    </p>
+                  </section>
                 </div>
               </div>
             </div>
@@ -452,16 +425,16 @@ function ChatPage() {
               className="min-w-0 flex-1 border-0 bg-transparent py-2 text-sm text-ink outline-none placeholder:text-slate-400"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Ask a question about company documents…"
+              placeholder="Send a message to WARDEN…"
               maxLength={10_000}
             />
             <button className="primary-button !px-3.5 !py-2" type="submit" disabled={busy || !query.trim()}>
-              Search <ArrowUpRight size={15} />
+              Send <ArrowUpRight size={15} />
             </button>
           </div>
           <div className="mt-2.5 flex items-center justify-between px-1 text-[10px] text-slate-400">
             <span className="flex items-center gap-1.5">
-            <LockKeyhole size={11} /> A keyed HMAC is logged, not your query text
+              <ShieldAlert size={11} /> WARDEN demo user; M4 role token is not sent
             </span>
             <span>{query.length}/10,000</span>
           </div>
@@ -470,7 +443,7 @@ function ChatPage() {
       <div className="mt-4 flex items-start gap-2 rounded-xl border border-indigo-100 bg-indigo-50/70 px-4 py-3 text-xs leading-5 text-indigo-800">
         <CircleHelp size={15} className="mt-0.5 shrink-0" />
         <span>
-          Demo: search for “What is the CFO&apos;s salary?” as an intern and then as an HR officer. The restricted passage is only returned to HR.
+          This WARDEN endpoint accepts only its built-in demo identity. M4 login credentials and role-based document access are not connected to WARDEN chat yet.
         </span>
       </div>
       <section className="panel-card mt-5 p-5 sm:p-6">

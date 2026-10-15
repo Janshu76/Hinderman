@@ -41,13 +41,29 @@ Requirements: Docker Desktop with Docker Compose.
 | `finance_manager` | Finance manager | Finance | Public and Finance documents |
 | `admin` | Admin | Operations | All documents |
 
-Try “What is the CFO's salary?” as `intern`, then as `hr_officer`. The intern
-receives no HR content and the denied attempt appears in the dashboard.
-
 The 19 synthetic source documents and seeded users are for demonstration
-only. The chat shell displays authorized retrieved passages; it does not
-generate a natural-language answer. LLM generation and the full gateway
-pipeline are integration points owned by the other team members.
+only. The document library, approvals and dashboard use the M4 backend.
+The M4 `/api/rag/retrieve` endpoint applies role-based document filtering;
+the WARDEN chat connection below does not call that endpoint yet.
+
+### WARDEN chat integration (demo)
+
+The Secure chat page sends prompts to WARDEN's `POST /gateway/v1/chat`
+endpoint and displays its reply and gateway report. WARDEN runs separately
+from this M4 stack. In the local `Hinderman-WARDEN` worktree, its Compose
+configuration maps the gateway to host port `8001` and uses the installed
+Ollama model `qwen3.5:4b`. Start both services with
+`docker compose --project-name hinderman-warden up -d --build` from that
+worktree. The M4 frontend proxy reaches `http://host.docker.internal:8001`;
+set `WARDEN_URL` in `.env` if WARDEN is listening elsewhere. For `npm run
+dev` outside Docker, set `WARDEN_URL` to the host URL, for example
+`http://localhost:8001`.
+
+This is a demo-only connection: WARDEN's built-in detector accepts the
+`demo` user, so the frontend sends that identity and does not forward the
+M4 JWT. WARDEN chat does not yet call M4's ACL-filtered retriever or scan
+retrieved document passages. Do not treat the current integration as
+production authentication or role-based RAG.
 
 ### Services and stack
 
@@ -58,6 +74,7 @@ pipeline are integration points owned by the other team members.
 - **Authentication:** JWT demo login, with role/department/clearance loaded
   from PostgreSQL for every request
 - **Deployment:** Docker Compose
+- **Chat gateway:** WARDEN FastAPI service, configured separately via `WARDEN_URL`
 
 The embedding model is downloaded by Hugging Face on first backend startup
 and cached in a Docker volume.
@@ -73,6 +90,7 @@ and cached in a Docker volume.
   and dashboard data
 - `GET /api/approvals` and
   `PATCH /api/approvals/{approval_id}` — role-scoped approval queue
+- `POST /gateway/v1/chat` — WARDEN demo chat (separate service; see above)
 - `GET /health` — service health
 
 ### Configuration

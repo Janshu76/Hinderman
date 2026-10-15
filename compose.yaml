@@ -48,6 +48,7 @@ services:
       context: ./frontend
     environment:
       BACKEND_URL: http://backend:8000
+      WARDEN_URL: ${WARDEN_URL:-http://host.docker.internal:8001}
     ports:
       - "5173:5173"
     depends_on:

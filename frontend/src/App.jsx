@@ -223,11 +223,11 @@ function AppShell({ user, active, setActive, onLogout, children }) {
         </div>
         <div className="mx-4 mt-auto mb-4 rounded-xl border border-white/[.08] bg-white/[.035] p-3.5">
           <div className="flex items-center gap-2 text-xs font-medium text-slate-200">
-            <span className="h-2 w-2 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,.6)]" />
-            WARDEN demo chat
+            <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,.6)]" />
+            WARDEN · M4 RAG
           </div>
           <p className="mt-2 text-[11px] leading-5 text-slate-500">
-            Chat uses WARDEN's demo identity; M4 access controls remain separate.
+            Signed-in identity and document access are checked by M4.
           </p>
         </div>
         <button
@@ -318,11 +318,11 @@ function ChatPage() {
       <PageHeading
         eyebrow="WARDEN gateway"
         title="Chat with WARDEN"
-        description="Your prompt is checked by WARDEN before its configured model responds. This demo chat is not connected to M4 document retrieval."
+        description="WARDEN checks your prompt, retrieves passages you are allowed to access from M4, scans them, and sends safe context to the configured model."
         action={
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-800">
-            <ShieldAlert size={13} />
-            Demo identity
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-800">
+            <ShieldCheck size={13} />
+            Signed-in identity
           </span>
         }
       />
@@ -333,11 +333,11 @@ function ChatPage() {
           </div>
           <div>
             <p className="text-sm font-semibold text-ink">WARDEN secure chat</p>
-            <p className="mt-0.5 text-xs text-muted">Prompt inspection and response generation</p>
+            <p className="mt-0.5 text-xs text-muted">Access-controlled M4 retrieval · prompt and passage inspection</p>
           </div>
-          <div className="ml-auto hidden items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-medium text-amber-800 sm:flex">
-            <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-            Demo mode
+          <div className="ml-auto hidden items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-medium text-emerald-800 sm:flex">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            RAG enabled
           </div>
         </div>
         <div className="min-h-[330px] bg-gradient-to-b from-slate-50/70 to-white p-5 sm:p-8">
@@ -384,6 +384,18 @@ function ChatPage() {
                   <div className="whitespace-pre-wrap rounded-xl border border-slate-200 bg-white p-4 text-sm leading-6 text-slate-700">
                     {result.reply}
                   </div>
+                  {result.sources.length > 0 && (
+                    <section className="mt-3 rounded-xl border border-slate-200 bg-white p-4">
+                      <h3 className="text-xs font-semibold text-ink">Retrieved M4 sources</h3>
+                      <ul className="mt-2 flex flex-wrap gap-2">
+                        {result.sources.map((source) => (
+                          <li key={source.doc_id} className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] text-slate-600">
+                            {source.doc_id}
+                          </li>
+                        ))}
+                      </ul>
+                    </section>
+                  )}
                   <section className="mt-3 rounded-xl border border-slate-200 bg-white p-4">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <h3 className="text-xs font-semibold text-ink">Gateway report</h3>
@@ -434,7 +446,7 @@ function ChatPage() {
           </div>
           <div className="mt-2.5 flex items-center justify-between px-1 text-[10px] text-slate-400">
             <span className="flex items-center gap-1.5">
-              <ShieldAlert size={11} /> WARDEN demo user; M4 role token is not sent
+              <ShieldCheck size={11} /> Signed-in M4 access token is verified for retrieval
             </span>
             <span>{query.length}/10,000</span>
           </div>
@@ -443,7 +455,7 @@ function ChatPage() {
       <div className="mt-4 flex items-start gap-2 rounded-xl border border-indigo-100 bg-indigo-50/70 px-4 py-3 text-xs leading-5 text-indigo-800">
         <CircleHelp size={15} className="mt-0.5 shrink-0" />
         <span>
-          This WARDEN endpoint accepts only its built-in demo identity. M4 login credentials and role-based document access are not connected to WARDEN chat yet.
+          This prototype uses seeded demo accounts and synthetic documents. M4 verifies the signed-in identity and filters retrieval by that account's access.
         </span>
       </div>
       <section className="panel-card mt-5 p-5 sm:p-6">

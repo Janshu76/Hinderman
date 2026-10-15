@@ -9,13 +9,18 @@ from typing import Literal
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from .contracts import RetrievalResult, UserContext
 from .database import Base, SessionLocal, engine, get_db
 from .models import Approval, RetrievalIncident, User
+from .m2_client import (
+    M2AuthenticationError,
+    M2ServiceError,
+    get_m2_client,
+)
 from .retriever import AccessControlledRetriever
 from .security import (
     create_access_token,
@@ -53,6 +58,8 @@ class LoginResponse(BaseModel):
 
 
 class RetrievalRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     query: str = Field(min_length=1, max_length=10_000)
     k: int = Field(default=4, ge=1, le=8)
 
@@ -81,6 +88,32 @@ def user_response(user: User) -> UserResponse:
         department=user.department,
         clearance=user.clearance,
     )
+
+
+def user_context_response(user: UserContext) -> UserResponse:
+    display_names = {
+        "intern": "Intern",
+        "hr_officer": "HR officer",
+        "finance_manager": "Finance manager",
+        "admin": "Administrator",
+    }
+    return UserResponse(
+        user_id=user.user_id,
+        display_name=display_names[user.role],
+        role=user.role,
+        department=user.department,
+        clearance=user.clearance,
+    )
+
+
+M2_LOGIN_USERNAMES = {
+    "intern": "intern",
+    "hr_officer": "hr",
+    "finance_manager": "finance",
+    "admin": "admin",
+    "hr": "hr",
+    "finance": "finance",
+}
 
 
 def approval_response(approval: Approval) -> ApprovalResponse:
@@ -162,6 +195,28 @@ def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
     try:
+        m2_client = get_m2_client()
+    except M2ServiceError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+        ) from exc
+    if m2_client is not None:
+        try:
+            return m2_client.resolve_access_token(credentials.credentials)
+        except M2AuthenticationError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid, expired, disabled, or unknown M2 access token",
+                headers={"WWW-Authenticate": "Bearer"},
+            ) from exc
+        except M2ServiceError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=str(exc),
+            ) from exc
+
+    try:
         user_id = decode_access_token(credentials.credentials)
     except ValueError as exc:
         raise HTTPException(
@@ -201,6 +256,33 @@ def health(store: AccessControlledRetriever = Depends(get_retriever)):
 
 @app.post("/api/auth/login", response_model=LoginResponse)
 def login(request: LoginRequest, db: Session = Depends(get_db)):
+    try:
+        m2_client = get_m2_client()
+    except M2ServiceError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+        ) from exc
+    if m2_client is not None:
+        username = M2_LOGIN_USERNAMES.get(request.user_id, request.user_id)
+        try:
+            access_token = m2_client.login(username, request.password)
+            user = m2_client.resolve_access_token(access_token)
+        except M2AuthenticationError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid user ID or password",
+            ) from exc
+        except M2ServiceError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=str(exc),
+            ) from exc
+        return LoginResponse(
+            access_token=access_token,
+            user=user_context_response(user),
+        )
+
     user = db.get(User, request.user_id)
     if (
         user is None
@@ -222,6 +304,16 @@ def current_user(
     user_context: UserContext = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    try:
+        m2_client = get_m2_client()
+    except M2ServiceError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+        ) from exc
+    if m2_client is not None:
+        return user_context_response(user_context)
+
     user = db.get(User, user_context.user_id)
     if user is None:
         raise HTTPException(status_code=401, detail="User no longer exists")

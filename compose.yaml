@@ -25,12 +25,16 @@ services:
       AUDIT_HMAC_KEY: ${AUDIT_HMAC_KEY:?Set AUDIT_HMAC_KEY in .env}
       DEMO_PASSWORD: ${DEMO_PASSWORD:?Set DEMO_PASSWORD in .env}
       APP_ENV: ${APP_ENV:-development}
+      M2_BASE_URL: ${M2_BASE_URL:-}
+      M2_SERVICE_TOKEN: ${M2_SERVICE_TOKEN:-}
+      M2_DEPARTMENT_MAP: ${M2_DEPARTMENT_MAP:-}
       CHROMA_PATH: /data/chroma
       HF_HOME: /data/huggingface
       CORS_ORIGINS: http://localhost:5173
     ports:
       - "8000:8000"
     volumes:
+      - ./backend/app:/app/app
       - chroma_data:/data/chroma
       - model_cache:/data/huggingface
     depends_on:
@@ -47,7 +51,7 @@ services:
     build:
       context: ./frontend
     environment:
-      BACKEND_URL: http://backend:8000
+      BACKEND_URL: http://host.docker.internal:8000
       WARDEN_URL: ${WARDEN_URL:-http://host.docker.internal:8001}
     ports:
       - "5173:5173"

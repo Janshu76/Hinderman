@@ -29,11 +29,18 @@ export async function login(userId, password) {
 }
 
 export async function chatWithWarden(prompt) {
+  const token = sessionStorage.getItem("hinderman_token")
+  if (!token) {
+    throw new Error("Sign in again before sending a chat message.")
+  }
+
   const response = await fetch(`${WARDEN_API_BASE}/gateway/v1/chat`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
     body: JSON.stringify({
-      user_id: "demo",
       messages: [{ role: "user", content: prompt }],
     }),
   })
@@ -46,6 +53,9 @@ export async function chatWithWarden(prompt) {
   const result = await response.json()
   if (typeof result.reply !== "string" || !result.gateway_report) {
     throw new Error("WARDEN returned an unexpected response")
+  }
+  if (!Array.isArray(result.sources)) {
+    throw new Error("WARDEN returned an unexpected source list")
   }
   return result
 }
